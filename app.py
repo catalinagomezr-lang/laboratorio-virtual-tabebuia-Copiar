@@ -147,7 +147,7 @@ elif page=='Análisis integrado':
  df=pd.DataFrame(rows)
  st.subheader('Resultados comparativos')
  st.dataframe(df,hide_index=True,use_container_width=True)
- fig,ax=plt.subplots(figsize=(8,3.5))
+ fig,ax=plt.subplots(figsize=(6.0,3.0))
  xx=np.arange(3);w=.34
  ax.bar(xx-w/2,df['Viabilidad (%)'],w,label='Viabilidad celular',color='#26854a')
  ax.bar(xx+w/2,df['Inhibición (%)'],w,label='Inhibición aparente',color='#76b7a0')
@@ -157,7 +157,9 @@ elif page=='Análisis integrado':
  ax.legend(loc='upper right')
  ax.grid(axis='y',alpha=.18)
  fig.tight_layout()
- st.pyplot(fig,use_container_width=True)
+ left_space,chart_col,right_space=st.columns([1,2,1])
+ with chart_col:
+  st.pyplot(fig,use_container_width=True)
  plt.close(fig)
  st.markdown('**Interpretación automática (criterios didácticos)**')
  passing=df[(df['Viabilidad (%)']>=80)&(df['Inhibición (%)']>=50)]
