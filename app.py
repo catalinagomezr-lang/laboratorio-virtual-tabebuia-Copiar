@@ -173,12 +173,37 @@ elif page=='Análisis integrado':
  st.caption('Los umbrales de 80 % de viabilidad y 50 % de inhibición son referencias educativas, no criterios de validación experimental ni de eficacia clínica.')
  st.caption('No es posible calcular CC₅₀, IC₅₀ ni índice de selectividad con una sola concentración. Los resultados deben interpretarse con controles, réplicas e incertidumbre.')
 elif page=='Equilibrio químico':
- st.header('Equilibrio químico: A + B ⇌ C + D')
- K=st.number_input('Constante Kc',min_value=.001,max_value=1000.,value=2.);a=st.slider('[A] inicial (M)',.1,5.,1.);b=st.slider('[B] inicial (M)',.1,5.,1.);c=st.slider('[C] inicial (M)',0.,5.,0.);d=st.slider('[D] inicial (M)',0.,5.,0.)
- Q=c*d/(a*b);low=-min(c,d)+1e-10;high=min(a,b)-1e-10
- def fun(z):return (c+z)*(d+z)-K*(a-z)*(b-z)
- z=brentq(fun,low,high);st.metric('Q inicial',f'{Q:.3f}');st.metric('Avance hacia productos (+) o reactivos (−)',f'{z:.4f} M');st.dataframe(pd.DataFrame({'Especie':['A','B','C','D'],'Equilibrio (M)':[a-z,b-z,c+z,d+z]}),hide_index=True)
- st.caption('Modelo hipotético, no representa una reacción identificada en las fracciones.')
+ st.markdown('<h2 style="color:#17652D">7. EQUILIBRIO QUÍMICO: A + B ⇌ C + D</h2>',unsafe_allow_html=True)
+ st.write('Simula cómo cambian las concentraciones de un sistema hipotético hasta alcanzar el equilibrio químico.')
+ K=st.number_input('Constante de equilibrio Kc',min_value=.001,max_value=1000.,value=2.,key='eq_k')
+ left,right=st.columns(2)
+ with left:
+  a=st.slider('[A] inicial (M)',.1,5.,1.,key='eq_a')
+  c=st.slider('[C] inicial (M)',0.,5.,0.,key='eq_c')
+ with right:
+  b=st.slider('[B] inicial (M)',.1,5.,1.,key='eq_b')
+  d=st.slider('[D] inicial (M)',0.,5.,0.,key='eq_d')
+ Q=c*d/(a*b)
+ low=-min(c,d)+1e-10
+ high=min(a,b)-1e-10
+ def fun(z):
+  return (c+z)*(d+z)-K*(a-z)*(b-z)
+ z=brentq(fun,low,high)
+ m1,m2,m3=st.columns(3)
+ m1.metric('Q inicial',f'{Q:.3f}')
+ m2.metric('Kc',f'{K:.3f}')
+ m3.metric('Avance de reacción',f'{z:+.4f} M')
+ if abs(Q-K)<1e-8:
+  st.success('Q = Kc: el sistema ya se encuentra en equilibrio bajo este modelo.')
+ elif Q<K:
+  st.info('Q < Kc: el sistema evoluciona hacia los productos (derecha) hasta alcanzar el equilibrio.')
+ else:
+  st.info('Q > Kc: el sistema evoluciona hacia los reactivos (izquierda) hasta alcanzar el equilibrio.')
+ ae,be,ce,de=a-z,b-z,c+z,d+z
+ st.subheader('Concentraciones en equilibrio')
+ st.dataframe(pd.DataFrame({'Especie':['A','B','C','D'],'Concentración inicial (M)':[a,b,c,d],'Concentración en equilibrio (M)':[ae,be,ce,de]}),hide_index=True,use_container_width=True)
+ st.caption(f'Comprobación: Q en equilibrio = {(ce*de)/(ae*be):.4f}; Kc = {K:.4f}.')
+ st.caption('Modelo químico hipotético: no representa una reacción identificada en las fracciones de Tabebuia rosea.')
 elif page=='Equilibrio de fases':
  st.header('Distribución entre dos fases')
  mass=st.number_input('Masa total (mg)',.1,10000.,100.);va=st.number_input('Volumen acuoso (mL)',1.,1000.,100.);vo=st.number_input('Volumen orgánico (mL)',1.,1000.,100.);kd=st.number_input('Coeficiente de distribución KD = Corg/Caq',.001,1000.,.1)
