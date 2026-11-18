@@ -205,12 +205,48 @@ elif page=='Equilibrio químico':
  st.caption(f'Comprobación: Q en equilibrio = {(ce*de)/(ae*be):.4f}; Kc = {K:.4f}.')
  st.caption('Modelo químico hipotético: no representa una reacción identificada en las fracciones de Tabebuia rosea.')
 elif page=='Equilibrio de fases':
- st.header('Distribución entre dos fases')
- mass=st.number_input('Masa total (mg)',.1,10000.,100.);va=st.number_input('Volumen acuoso (mL)',1.,1000.,100.);vo=st.number_input('Volumen orgánico (mL)',1.,1000.,100.);kd=st.number_input('Coeficiente de distribución KD = Corg/Caq',.001,1000.,.1)
- ma=mass*va/(va+kd*vo);mo=mass-ma
- st.dataframe(pd.DataFrame({'Fase':['Acuosa','Orgánica'],'Masa (mg)':[ma,mo],'Concentración (mg/mL)':[ma/va,mo/vo]}),hide_index=True)
- st.bar_chart(pd.DataFrame({'Masa (mg)':[ma,mo]},index=['Acuosa','Orgánica']))
- st.caption('Modelo de reparto ideal entre fases hipotéticas. No describe el proceso de extracción original de las fracciones.')
+ st.markdown('<h2 style="color:#17652D">8. EQUILIBRIO DE FASES</h2>',unsafe_allow_html=True)
+ st.write('Explora la distribución ideal de una sustancia hipotética entre una fase acuosa y una orgánica. Modifica el coeficiente de distribución y los volúmenes para observar cómo cambia el reparto.')
+ left,right=st.columns(2,gap='large')
+ with left:
+  mass=st.number_input('Masa total (mg)',min_value=0.1,max_value=10000.0,value=100.0,step=10.0,key='fase_mass')
+  va=st.number_input('Volumen acuoso (mL)',min_value=1.0,max_value=1000.0,value=100.0,step=10.0,key='fase_va')
+ with right:
+  vo=st.number_input('Volumen orgánico (mL)',min_value=1.0,max_value=1000.0,value=100.0,step=10.0,key='fase_vo')
+  kd=st.number_input('Coeficiente de distribución KD = Corg/Caq',min_value=0.001,max_value=1000.0,value=0.1,step=0.1,format='%.3f',key='fase_kd')
+ ma=mass*va/(va+kd*vo)
+ mo=mass-ma
+ ca=ma/va
+ co=mo/vo
+ st.subheader('Resultados del equilibrio')
+ c1,c2,c3=st.columns(3)
+ c1.metric('Masa acuosa',f'{ma:.3f} mg')
+ c2.metric('Masa orgánica',f'{mo:.3f} mg')
+ c3.metric('Masa recuperada',f'{ma+mo:.3f} mg')
+ df_fases=pd.DataFrame({'Fase':['Acuosa','Orgánica'],'Masa (mg)':[ma,mo],'Concentración (mg/mL)':[ca,co],'Porcentaje de masa (%)':[100*ma/mass,100*mo/mass]})
+ st.dataframe(df_fases,hide_index=True,use_container_width=True)
+ st.subheader('Distribución de masa entre fases')
+ espacio_izq,grafica,espacio_der=st.columns([1,2,1])
+ with grafica:
+  fig,ax=plt.subplots(figsize=(5.6,2.8))
+  bars=ax.bar(['Acuosa','Orgánica'],[ma,mo],color=['#26854a','#76b7a0'],width=0.5)
+  ax.set_ylabel('Masa (mg)')
+  ax.set_ylim(0,max(mass*1.14,0.1))
+  ax.grid(axis='y',alpha=.18)
+  ax.set_axisbelow(True)
+  for bar,valor in zip(bars,[ma,mo]):
+   ax.text(bar.get_x()+bar.get_width()/2,valor+mass*.02,f'{valor:.2f}',ha='center',fontsize=9)
+  fig.tight_layout()
+  st.pyplot(fig,use_container_width=True)
+  plt.close(fig)
+ if kd<1:
+  st.info('KD < 1: a igual volumen, la concentración de equilibrio es mayor en la fase acuosa.')
+ elif kd>1:
+  st.info('KD > 1: a igual volumen, la concentración de equilibrio es mayor en la fase orgánica.')
+ else:
+  st.info('KD = 1: las concentraciones de equilibrio son iguales en ambas fases.')
+ st.caption(f'Comprobación: Corg/Caq = {co/ca:.3f}; KD indicado = {kd:.3f}. La distribución de masa también depende de los volúmenes de ambas fases.')
+ st.caption('Modelo de reparto ideal entre fases hipotéticas. No describe el proceso de extracción original ni la composición real de las fracciones de Tabebuia rosea.')
 elif page=='Cinética de primer orden':
  st.header('Cinética de primer orden: A → B')
  a=st.slider('Concentración inicial [A]₀ (M)',.1,5.,1.);k=st.slider('Constante k (tiempo⁻¹)',.001,1.,.1);tmax=st.slider('Tiempo máximo (unidades arbitrarias)',1,100,48);t=np.linspace(0,tmax,200);y=a*np.exp(-k*t)
