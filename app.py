@@ -125,15 +125,51 @@ elif page=='Actividad antiparasitaria':
   if inh<0:st.info('La señal de la muestra supera la del control; revisar interferencias, blancos y variabilidad.')
   st.warning('Antes de interpretar lecturas reales, definir y aplicar la corrección validada de las señales a 420 y 615 nm y los blancos. No se estima IC₅₀ con una sola concentración.')
 elif page=='Análisis integrado':
- st.header('Comparación de fracciones')
- mode=st.radio('Origen de los valores',['Ejemplo simulado','Ingreso manual'],horizontal=True)
+ st.markdown('<h2 style="color:#17652D">6. ANÁLISIS INTEGRADO DE LAS FRACCIONES</h2>',unsafe_allow_html=True)
+ st.write('Compara la viabilidad celular y la inhibición antiparasitaria aparente de las tres fracciones en un mismo escenario educativo.')
+ mode=st.radio('Origen de los valores',['Ejemplo simulado','Ingreso manual'],horizontal=True,key='integrated_mode')
+ if mode=='Ejemplo simulado':
+  st.caption('Valores de ejemplo ficticios; puedes mover los controles para explorar distintos escenarios.')
+ else:
+  st.info('Introduce los porcentajes previamente calculados a partir de tus mediciones. Esta sección no procesa fluorescencias ni absorbancias crudas.')
  rows=[]
- for i in range(1,4):
+ defaults=[(90.,40.),(75.,65.),(85.,80.)]
+ for i,(dv,di) in enumerate(defaults,1):
   with st.expander(f'Fracción {i}',expanded=True):
-   a,b=st.columns(2);v=a.slider('Viabilidad (%)',0.,100.,float([90,75,85][i-1]),key=f'v{i}');inh=b.slider('Inhibición (%)',0.,100.,float([40,65,80][i-1]),key=f'i{i}');rows.append({'Fracción':f'Fracción {i}','Viabilidad (%)':v,'Inhibición (%)':inh})
- st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
- st.write('Referencia didáctica: ≥80 % de viabilidad y ≥50 % de inhibición; **no** son criterios de validación experimental.')
- st.caption('No se calcula CC₅₀, IC₅₀ ni índice de selectividad con una sola concentración.')
+   x,y=st.columns(2)
+   if mode=='Ejemplo simulado':
+    v=x.slider('Viabilidad (%)',0.,100.,dv,key=f'integ_sim_v{i}')
+    inh=y.slider('Inhibición aparente (%)',0.,100.,di,key=f'integ_sim_i{i}')
+   else:
+    v=x.number_input('Viabilidad (%)',min_value=0.,max_value=200.,value=dv,step=1.,key=f'integ_real_v{i}')
+    inh=y.number_input('Inhibición aparente (%)',min_value=-100.,max_value=100.,value=di,step=1.,key=f'integ_real_i{i}')
+   rows.append({'Fracción':f'Fracción {i}','Viabilidad (%)':v,'Inhibición (%)':inh})
+ df=pd.DataFrame(rows)
+ st.subheader('Resultados comparativos')
+ st.dataframe(df,hide_index=True,use_container_width=True)
+ fig,ax=plt.subplots(figsize=(8,3.5))
+ xx=np.arange(3);w=.34
+ ax.bar(xx-w/2,df['Viabilidad (%)'],w,label='Viabilidad celular',color='#26854a')
+ ax.bar(xx+w/2,df['Inhibición (%)'],w,label='Inhibición aparente',color='#76b7a0')
+ ax.set_xticks(xx,df['Fracción'])
+ ax.set_ylabel('Porcentaje (%)')
+ ax.set_ylim(min(0,float(df['Inhibición (%)'].min())-10),max(105,float(df['Viabilidad (%)'].max())+10))
+ ax.legend(loc='upper right')
+ ax.grid(axis='y',alpha=.18)
+ fig.tight_layout()
+ st.pyplot(fig,use_container_width=True)
+ plt.close(fig)
+ st.markdown('**Interpretación automática (criterios didácticos)**')
+ passing=df[(df['Viabilidad (%)']>=80)&(df['Inhibición (%)']>=50)]
+ if passing.empty:
+  st.warning('Ninguna fracción cumple simultáneamente los dos umbrales ilustrativos en este escenario.')
+ else:
+  names=', '.join(passing['Fracción'].tolist())
+  st.success(f'Cumplen simultáneamente viabilidad ≥80 % e inhibición ≥50 %: {names}.')
+  if len(passing)>1:
+   st.write('Hay varias fracciones que cumplen los umbrales; este análisis no establece por sí solo cuál es superior.')
+ st.caption('Los umbrales de 80 % de viabilidad y 50 % de inhibición son referencias educativas, no criterios de validación experimental ni de eficacia clínica.')
+ st.caption('No es posible calcular CC₅₀, IC₅₀ ni índice de selectividad con una sola concentración. Los resultados deben interpretarse con controles, réplicas e incertidumbre.')
 elif page=='Equilibrio químico':
  st.header('Equilibrio químico: A + B ⇌ C + D')
  K=st.number_input('Constante Kc',min_value=.001,max_value=1000.,value=2.);a=st.slider('[A] inicial (M)',.1,5.,1.);b=st.slider('[B] inicial (M)',.1,5.,1.);c=st.slider('[C] inicial (M)',0.,5.,0.);d=st.slider('[D] inicial (M)',0.,5.,0.)
