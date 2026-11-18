@@ -248,10 +248,52 @@ elif page=='Equilibrio de fases':
  st.caption(f'Comprobación: Corg/Caq = {co/ca:.3f}; KD indicado = {kd:.3f}. La distribución de masa también depende de los volúmenes de ambas fases.')
  st.caption('Modelo de reparto ideal entre fases hipotéticas. No describe el proceso de extracción original ni la composición real de las fracciones de Tabebuia rosea.')
 elif page=='Cinética de primer orden':
- st.header('Cinética de primer orden: A → B')
- a=st.slider('Concentración inicial [A]₀ (M)',.1,5.,1.);k=st.slider('Constante k (tiempo⁻¹)',.001,1.,.1);tmax=st.slider('Tiempo máximo (unidades arbitrarias)',1,100,48);t=np.linspace(0,tmax,200);y=a*np.exp(-k*t)
- plot(t,y,'Tiempo','[A] (M)','Decaimiento de primer orden');st.metric('Vida media',f'{np.log(2)/k:.2f} unidades de tiempo')
- st.caption('Reacción genérica didáctica; no identifica una vía de acción de las fracciones.')
+ st.markdown('<h2 style="color:#17652D">9. CINÉTICA DE PRIMER ORDEN: A → B</h2>',unsafe_allow_html=True)
+ st.write('Explora la disminución de la concentración de A en una reacción hipotética de primer orden. Modifica los parámetros para observar cómo cambian la curva, la velocidad y la vida media.')
+ col1,col2=st.columns(2)
+ with col1:
+  a=st.slider('Concentración inicial [A]₀ (M)',0.1,5.0,1.0,0.1,key='cin_a')
+  k=st.slider('Constante de velocidad k (tiempo⁻¹)',0.001,1.0,0.1,0.001,key='cin_k')
+ with col2:
+  tmax=st.slider('Tiempo máximo (unidades arbitrarias)',1,100,48,1,key='cin_tmax')
+  tiempo_interes=st.slider('Tiempo de interés',0,tmax,min(10,tmax),1,key='cin_tinteres')
+ t=np.linspace(0,tmax,250)
+ y=a*np.exp(-k*t)
+ vida_media=np.log(2)/k
+ concentracion_interes=a*np.exp(-k*tiempo_interes)
+ velocidad_interes=k*concentracion_interes
+ st.subheader('Resultados de la simulación')
+ m1,m2,m3=st.columns(3)
+ m1.metric('Vida media',f'{vida_media:.2f} unidades de tiempo')
+ m2.metric('Concentración en el tiempo elegido',f'{concentracion_interes:.4f} M')
+ m3.metric('Velocidad en el tiempo elegido',f'{velocidad_interes:.4f} M/tiempo')
+ st.subheader('Decaimiento de primer orden')
+ espacio_izq,grafica,espacio_der=st.columns([1,2,1])
+ with grafica:
+  fig,ax=plt.subplots(figsize=(5.6,3.0))
+  ax.plot(t,y,color='#23864C',linewidth=2.5,label='[A](t)')
+  ax.scatter([tiempo_interes],[concentracion_interes],color='#C83D56',s=40,zorder=3,label='Tiempo elegido')
+  if vida_media<=tmax:
+   ax.axvline(vida_media,color='#76B7A0',linestyle='--',linewidth=1.4,label='Vida media')
+  ax.set_xlabel('Tiempo (unidades arbitrarias)')
+  ax.set_ylabel('[A] (M)')
+  ax.set_ylim(0,a*1.1)
+  ax.grid(alpha=.18)
+  ax.legend(fontsize=8,loc='upper right')
+  fig.tight_layout()
+  st.pyplot(fig,use_container_width=True)
+  plt.close(fig)
+ st.subheader('Concentración y velocidad en distintos tiempos')
+ tiempos_tabla=sorted(set([0,tmax/4,tmax/2,3*tmax/4,tmax]))
+ tabla=pd.DataFrame({
+  'Tiempo': [round(v,2) for v in tiempos_tabla],
+  'Concentración [A] (M)': [round(a*np.exp(-k*v),4) for v in tiempos_tabla],
+  'Velocidad k[A] (M/tiempo)': [round(k*a*np.exp(-k*v),4) for v in tiempos_tabla]
+ })
+ st.dataframe(tabla,hide_index=True,use_container_width=True)
+ st.info('Al aumentar k, A se consume más rápidamente y disminuye la vida media. En un modelo de primer orden, la vida media no depende de la concentración inicial.')
+ st.latex(r'[A](t)=[A]_0e^{-kt}\qquad v=k[A]\qquad t_{1/2}=\frac{\ln 2}{k}')
+ st.caption('Modelo hipotético y didáctico. No representa una reacción identificada ni un mecanismo demostrado de las fracciones de Tabebuia rosea.')
 elif page=='Respuesta en función del tiempo':
  st.header('Modelo de respuesta aparente en el tiempo')
  f=frac();C=st.slider('Concentración (µM)',1,360,100);ec=st.slider('EC₅₀ hipotética (µM)',1,360,90);imax=st.slider('Efecto máximo (%)',1,100,90);k=st.slider('Constante aparente de respuesta (h⁻¹)',.001,.5,.06);t=np.linspace(0,72,200);inh=imax*C/(ec+C)*(1-np.exp(-k*t))
