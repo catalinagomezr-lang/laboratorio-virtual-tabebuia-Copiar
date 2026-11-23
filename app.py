@@ -39,29 +39,40 @@ elif page=='Fracciones y diluciones':
  if pct>1:st.warning('La proporción calculada supera 1 % de DMSO. Revisar la compatibilidad con el control de vehículo antes de interpretar datos.')
 elif page=='Citotoxicidad · Alamar Blue':
  st.markdown('<h2 style="color:#17652D">4. CITOTOXICIDAD · ALAMAR BLUE</h2>',unsafe_allow_html=True)
- st.write('Modelo educativo de viabilidad celular mediante la señal de resazurina/resorufina. En la práctica se describen células HFF y lectura de fluorescencia con excitación 530/25 nm y emisión 590/25 nm.')
- f=frac()
- mode=st.radio('Tipo de datos',['Simulación','Ingreso de datos reales'],horizontal=True)
+ st.write('Modelo educativo de viabilidad celular mediante la señal de resazurina/resorufina. Los datos simulados no representan mediciones experimentales.')
+ mode=st.radio('Tipo de datos',['Simulación','Ingreso de datos reales'],horizontal=True,key='ala_mode')
  if mode=='Simulación':
-  left,right=st.columns([1,1],gap='large')
-  with left:
-   ec=st.slider('Concentración media del efecto (µM)',1,360,100)
-   maximum=st.slider('Reducción máxima de viabilidad (%)',0,100,80)
-   c=st.slider('Concentración de interés (µM)',1,360,100)
-   st.metric('Viabilidad estimada',f'{100-maximum*c/(ec+c):.1f} %')
-   st.caption('Valores simulados. La forma de la curva es hipotética y no constituye una medición de toxicidad.')
-  with right:
-   x=np.linspace(1,360,180)
+  st.write('Configura cada fracción de forma independiente. Los valores se conservan al cambiar de fracción y entre las secciones durante esta sesión.')
+  defaults=[(180,65),(120,85),(240,45)]
+  params=[]
+  for i,(d_ec,d_max) in enumerate(defaults,1):
+   with st.expander(f'Fracción {i} · parámetros',expanded=i==1):
+    a,b=st.columns(2)
+    ec=a.slider('Concentración media del efecto (µM)',1,360,d_ec,key=f'ala_ec_{i}')
+    maximum=b.slider('Reducción máxima de viabilidad (%)',0,100,d_max,key=f'ala_max_{i}')
+    params.append((ec,maximum))
+  c=st.slider('Concentración de interés común (µM)',1,360,100,key='ala_c_common')
+  x=np.linspace(0,360,361)
+  fig,ax=plt.subplots(figsize=(8,4.5))
+  colors=['#217a43','#ed9b30','#6b59aa']
+  rows=[]
+  for i,((ec,maximum),color) in enumerate(zip(params,colors),1):
    y=100-maximum*x/(ec+x)
-   fig,ax=plt.subplots(figsize=(5.5,3.0))
-   ax.plot(x,y,color='#21854b',lw=2.5)
-   ax.scatter([c],[100-maximum*c/(ec+c)],color='#c83c53',s=45,zorder=3)
-   ax.set(xlabel='Concentración (µM)',ylabel='Viabilidad relativa (%)',title='Curva simulada',ylim=(0,105))
-   ax.grid(alpha=.2)
-   fig.tight_layout()
-   st.pyplot(fig,use_container_width=False)
-   plt.close(fig)
+   value=100-maximum*c/(ec+c)
+   ax.plot(x,y,lw=2.5,color=color,label=f'Fracción {i}')
+   ax.scatter([c],[value],color=color,s=35,zorder=3)
+   rows.append({'Fracción':f'Fracción {i}','Viabilidad simulada (%)':round(value,2)})
+  ax.set(xlabel='Concentración (µM)',ylabel='Viabilidad relativa (%)',title='Alamar Blue · comparación simulada de tres fracciones',xlim=(0,360),ylim=(0,105))
+  ax.grid(alpha=.2);ax.legend();fig.tight_layout()
+  st.pyplot(fig)
+  from io import BytesIO
+  buffer=BytesIO();fig.savefig(buffer,format='png',dpi=300,bbox_inches='tight')
+  st.download_button('Descargar gráfica de citotoxicidad (PNG, 300 dpi)',buffer.getvalue(),file_name='citotoxicidad_tres_fracciones.png',mime='image/png',key='download_ala')
+  plt.close(fig)
+  st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
+  st.caption(f'Comparación a {c} µM. Curvas hipotéticas generadas mediante modelos matemáticos; no son datos experimentales.')
  else:
+  f=frac()
   st.write('Introduce las intensidades de fluorescencia medidas. Se descontará el blanco tanto del control como de la muestra.')
   a,b,c_col=st.columns(3)
   with a: control=st.number_input('Fluorescencia control',min_value=0.,value=1000.,key='ala_control')
@@ -70,57 +81,55 @@ elif page=='Citotoxicidad · Alamar Blue':
   if control>blank:
    viability=100*(sample-blank)/(control-blank)
    st.metric('Viabilidad relativa aparente',f'{viability:.2f} %')
-   st.latex(r'\\mathrm{Viabilidad}\\ (\\%)=\\frac{F_{muestra}-F_{blanco}}{F_{control}-F_{blanco}}\\times100')
+   st.latex(r'\mathrm{Viabilidad}\ (\%)=\frac{F_{muestra}-F_{blanco}}{F_{control}-F_{blanco}}\times100')
    if sample<blank:st.warning('La fluorescencia de la muestra es menor que la del blanco; verifica las lecturas antes de interpretar el resultado.')
    if viability>100:st.info('El valor supera 100 % respecto al control. Puede reflejar variabilidad, interferencias o diferencias de señal.')
   else:st.error('La fluorescencia del control debe superar la del blanco.')
  st.caption('Una reducción de fluorescencia no demuestra por sí sola muerte celular: considerar blancos, interferencias y controles adecuados.')
 elif page=='Actividad antiparasitaria':
  st.markdown('<h2 style="color:#17652D">5. ACTIVIDAD ANTIPARASITARIA APARENTE</h2>',unsafe_allow_html=True)
- st.write('Análisis educativo de la señal del ensayo colorimétrico asociado a β-galactosidasa. El método menciona lecturas a 420 y 615 nm; las lecturas reales requieren corrección y blancos validados.')
- f=frac()
+ st.write('Análisis educativo de la señal del ensayo colorimétrico asociado a β-galactosidasa. Los modelos no sustituyen lecturas experimentales.')
  mode=st.radio('Datos',['Simulados','Lecturas reales'],horizontal=True,key='anti_mode')
  if mode=='Simulados':
-  left,right=st.columns([1,1],gap='large')
-  with left:
-   ec50=st.slider('Concentración de efecto semimáximo del modelo (µM)',1,360,90,key='anti_ec50')
-   maxi=st.slider('Inhibición máxima simulada (%)',1,100,95,key='anti_max')
-   c=st.slider('Concentración de interés (µM)',1,360,100,key='anti_c')
-   inh=maxi*c/(ec50+c)
-   st.metric('Inhibición aparente simulada',f'{inh:.1f} %')
-   st.metric('Actividad relativa simulada',f'{100-inh:.1f} %')
-   if maxi>50:
-    ic50_abs=50*ec50/(maxi-50)
-    if ic50_abs<=360:
-     st.metric('Concentración para 50 % de inhibición absoluta (modelo)',f'{ic50_abs:.1f} µM')
-    else:
-     st.info(f'El modelo alcanza 50 % de inhibición absoluta cerca de {ic50_abs:.1f} µM, fuera del intervalo mostrado.')
-   elif maxi==50:
-    st.info('El modelo se aproxima a 50 % de inhibición solo asintóticamente; no hay una concentración finita que lo alcance.')
-   else:
-    st.info('Con este máximo, el modelo no alcanza 50 % de inhibición absoluta.')
-   st.caption('El parámetro de efecto semimáximo corresponde a la mitad de la inhibición máxima del modelo; no equivale necesariamente a una IC₅₀ absoluta.')
-  with right:
-   x=np.linspace(1,360,180)
-   y=maxi*x/(ec50+x)
-   fig,ax=plt.subplots(figsize=(5.5,3.0))
-   ax.plot(x,y,color='#21854b',lw=2.5)
-   ax.scatter([c],[inh],color='#c83c53',s=45,zorder=3)
-   ax.axhline(50,color='#777777',linestyle='--',linewidth=1,alpha=.65)
-   ax.set(xlabel='Concentración (µM)',ylabel='Inhibición aparente (%)',title='Curva simulada',ylim=(0,105))
-   ax.grid(alpha=.2)
-   fig.tight_layout()
-   st.pyplot(fig,use_container_width=False)
-   plt.close(fig)
-  st.caption('Curva hipotética para aprendizaje; no representa resultados experimentales ni una IC₅₀ medida de las fracciones.')
+  st.write('Cada fracción tiene parámetros independientes; las tres curvas aparecen juntas para facilitar su comparación.')
+  defaults=[(150,75),(80,90),(60,95)]
+  params=[]
+  for i,(d_ec,d_max) in enumerate(defaults,1):
+   with st.expander(f'Fracción {i} · parámetros',expanded=i==1):
+    a,b=st.columns(2)
+    ec=a.slider('Concentración de efecto semimáximo del modelo (µM)',1,360,d_ec,key=f'anti_ec_{i}')
+    maximum=b.slider('Inhibición máxima simulada (%)',1,100,d_max,key=f'anti_max_{i}')
+    params.append((ec,maximum))
+  c=st.slider('Concentración de interés común (µM)',1,360,100,key='anti_c_common')
+  x=np.linspace(0,360,361)
+  fig,ax=plt.subplots(figsize=(8,4.5))
+  colors=['#217a43','#ed9b30','#6b59aa']
+  rows=[]
+  for i,((ec,maximum),color) in enumerate(zip(params,colors),1):
+   y=maximum*x/(ec+x)
+   value=maximum*c/(ec+c)
+   ax.plot(x,y,lw=2.5,color=color,label=f'Fracción {i}')
+   ax.scatter([c],[value],color=color,s=35,zorder=3)
+   rows.append({'Fracción':f'Fracción {i}','Inhibición aparente simulada (%)':round(value,2)})
+  ax.axhline(50,color='#777777',linestyle='--',linewidth=1,alpha=.6)
+  ax.set(xlabel='Concentración (µM)',ylabel='Inhibición aparente (%)',title='Actividad antiparasitaria · comparación simulada de tres fracciones',xlim=(0,360),ylim=(0,105))
+  ax.grid(alpha=.2);ax.legend();fig.tight_layout()
+  st.pyplot(fig)
+  from io import BytesIO
+  buffer=BytesIO();fig.savefig(buffer,format='png',dpi=300,bbox_inches='tight')
+  st.download_button('Descargar gráfica antiparasitaria (PNG, 300 dpi)',buffer.getvalue(),file_name='actividad_antiparasitaria_tres_fracciones.png',mime='image/png',key='download_anti')
+  plt.close(fig)
+  st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
+  st.caption(f'Comparación a {c} µM. Curvas hipotéticas generadas mediante modelos matemáticos; no son datos experimentales.')
  else:
+  f=frac()
   st.write('Ingresa las absorbancias ya corregidas según el procedimiento analítico validado.')
   c1,c2=st.columns(2)
   with c1:ctrl=st.number_input('Absorbancia control corregida',min_value=.001,value=1.,key='anti_ctrl')
   with c2:sample=st.number_input('Absorbancia muestra corregida',min_value=0.,value=.6,key='anti_sample')
   inh=100*(1-sample/ctrl)
   st.metric('Inhibición aparente',f'{inh:.1f} %')
-  st.latex(r'\\mathrm{Inhibición}\\ (\\%)=\\left(1-\\frac{A_{muestra}}{A_{control}}\\right)\\times100')
+  st.latex(r'\mathrm{Inhibición}\ (\%)=\left(1-\frac{A_{muestra}}{A_{control}}\right)\times100')
   if inh<0:st.info('La señal de la muestra supera la del control; revisar interferencias, blancos y variabilidad.')
   st.warning('Antes de interpretar lecturas reales, definir y aplicar la corrección validada de las señales a 420 y 615 nm y los blancos. No se estima IC₅₀ con una sola concentración.')
 st.divider();st.caption('Universidad del Quindío · Recurso didáctico interactivo. Verificar todos los cálculos y condiciones antes de uso académico formal.')
